@@ -2,6 +2,7 @@ from chunkypipes.components import *
 import os
 import pandas
 import matplotlib.pyplot as plt
+import matplotlib.collections as collections
 
 class Pipeline(BasePipeline):
 	def dependencies(self):
@@ -43,7 +44,6 @@ class Pipeline(BasePipeline):
 				Parameter('--make-bed'),
 				Parameter('--out', pipeline_args['input'])
 			)
-
 		
 		# run king three times to get all information
 		king.run(
@@ -67,12 +67,25 @@ class Pipeline(BasePipeline):
 			)
 
 		# graph output of king using pandas
+		# between-family relationships
+		#fig = plt.figure()
+		#ax = fig.add_subplot(111)
 		king_kinship_matrix = pandas.read_table(pipeline_args['location'] + '/' + pipeline_args['input']+'.kin0')
 		graph = king_kinship_matrix.plot(kind='scatter', x='Kinship', y='IBS0')
 		# kinship coeff > 0.354 duplicates/monozygotic twins
 		# 0.177 < kinship coeff < 0.354 1st degree (parent-offspring, siblings)
 		# 0.0884 < kinship coeff < 0.177 2nd degree (half-sibs, grandparent-grandchild) 
-		plt.axvline(x=0.354)
-		plt.axvline(x=0.177)
-		plt.axvline(x=0.0884)
+		dup_twins = collections.BrokenBarHCollection([(0.354, 0.6-0.354)], (0, 0.20), facecolor='red', alpha=0.3)
+		sib_par = collections.BrokenBarHCollection([(0.177, 0.354-0.177)], (0, 0.20), facecolor='yellow', alpha=0.3)
+		half_grand = collections.BrokenBarHCollection([(0.0884, 0.177-0.0884)], (0, 0.20), facecolor='green', alpha=0.3)
+		graph.add_collection(dup_twins)
+		graph.add_collection(sib_par)
+		graph.add_collection(half_grand)
+		plt.title('Kinship between families')
+		plt.axvline(x=0.354, linestyle='--')
+		plt.axvline(x=0.177, linestyle='--')
+		plt.axvline(x=0.0884, linestyle='--')
 		plt.show()
+
+		# TODO:  remove related indivuals
+		#./../TOOLS/plink --file CCPM-Ex_validation_02-20-17 --keep kingunrelated.txt --make-bed --out CCPM-Ex_validation_02-20-17-related-removed
