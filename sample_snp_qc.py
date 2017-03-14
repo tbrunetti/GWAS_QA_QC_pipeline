@@ -11,7 +11,7 @@ class Pipeline(BasePipeline):
 		return ['pandas', 'matplotlib']
 
 	def description(self):
-		return 'Pipeline to perform sample QC (call rate, pruning, HWE, Mendelian Error)'
+		return 'Pipeline to perform sample QC (call rate, HWE, Mendelian Error, LD-pruning)'
 
 	def configure(self):
 		return {
@@ -32,13 +32,16 @@ class Pipeline(BasePipeline):
 	def run_pipeline(self, pipeline_args, pipeline_config):
 		plink = Software('plink', pipeline_config['plink']['path'])
 
+		# ('/', 1)  is number of splits starting from right, so will split one time and the first time will be the first / from the right
+		fileLoc, filePrefix = pipeline_args['fileLocation'].rsplit('/', 1)
+
 		# missing call rate, sample and snp level
 		plink.run(
 			Parameter('--bfile', pipeline_args['fileLocation']),
 			Parameter('--geno', pipeline_args['sample_missing_callrate']),
 			Parameter('--mind', pipeline_args['snp_missing_callrate']),
 			Parameter('--make-bed'),
-			Parameter('--out', pipeline_args['fileLocation']+'_callrate_cleanups')
+			Parameter('--out', pipeline_args['fileLocation']+'_callrate_cleanup')
 			)
 
 		# Hardy-Weinberg Equilibrium test
@@ -47,25 +50,31 @@ class Pipeline(BasePipeline):
 			Parameter('--bfile', pipeline_args['fileLocation']+'_callrate_cleanup'),
 			Parameter('--hwe', pipeline_args['hwe_cutoff']),
 			Parameter('midp'), # applies mid-p adjustment to reduce favoritism of variants with missing data
+			Parameter('--make-bed'),
 			Parameter('--out', pipeline_args['fileLocation']+'_callrate_cleanup_HWEfiter')
 			)
 
-		#Mendelian Error rate (need to look up general error rates to set as default)
+
+		# first need to calculate the per-SNP (.lmendel) and per-individual error rates (.imendel)
+		# TODO: 
+		# //run statistics on mendel and HWE in determine relatedness to get an idea of what values to pass into filters???
+
+		#Mendelian Error rate filter (need to look up general error rates to set as default)
 		#plink.run(
 		#		Parameter('--bfile', pipeline_args['fileLocation']+'_callrate_cleanup_HWEfiter'),
-		#	Parameter('--me')
-		#	)
+		#		Parameter('--me'),
+		#		Parameter('--make-bed')
+		#		)
 
-		# LD-pruning via plink
+		# LD-pruning via plink (remember to add back mendel error output to --file)
 		plink.run(
-			Parameter('--bfile', pipeline_args['fileLocation']+'_callrate_cleanup_HWEfiter_mendelErrorfilter'),
+			Parameter('--bfile', pipeline_args['fileLocation']+'_callrate_cleanup_HWEfiter'),
 			Parameter('--indep-pairwise', pipeline_args['windowSize']),
 			Parameter(pipeline_args['varStep']),
 			Parameter(pipeline_args['r2_thresh']),
+			Parameter('--make-bed'),
 			Parameter('--out', pipeline_args['fileLocation']+'_callrate_cleanup_HWEfiter_mendelErrorfilter_LDpruned')
 			)
 
-# window size (kb), variant step size, r^2 threshold
-#./../TOOLS/plink --bfile CCPM-Ex_validation_02-20-17-related-removed-snp-and-sample-callRate-filter-applied --indep-pairwise 50 5 0.5 --out LDpruned
 
-#het from plink to determine heterozygosity rates and inbreeding coefficeints (LD prune first!)
+#het from plink to determine heterozygosity rates and inbreeding coefficeints (LD prune first!)s
