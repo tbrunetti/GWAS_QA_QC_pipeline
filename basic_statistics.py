@@ -1,4 +1,5 @@
 import argparse
+import math
 import subprocess
 import matplotlib.pyplot as plt
 import matplotlib.collections as collections
@@ -88,20 +89,76 @@ def visualize_stats(outputPrefix, custom_file):
 
 
 	def hwe():
-		# distribution of SNP counts by MAF
+		# distribution of SNP counts by p-value of exact test of HWE
 		hwe_file = pandas.read_table(outputPrefix + '.hwe', delim_whitespace=True)
-		print hwe
+		plt.figure()
+		hwe_pval_dist = hwe_file['P'].plot.hist(bins=20)
+		plt.xlabel("p-values")
+		plt.ylabel("Total Numer of SNPs")
+		plt.title("Distribution of HWE p-values across all SNPs", fontsize=15)
+		pdf.savefig()
+		plt.close()
 
+		# plots total number of snps that are less than the max p-value threshold as each interval 
+		total_snps_pvalues = []
+		total_custom_pvalues = []
+		pval_binning = [0.05, 0.01, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
+		for i in pval_binning:
+			total_snps_pvalues.append(hwe_file[hwe_file['P'] < float(i)].count()['P'])
+			if custom_file != None: # only if user supplies custom snp file
+				total_custom_pvalues.append(len(set(list(hwe_file[hwe_file['P'] < float(i)]['SNP'])).intersection(custom_names_only)))
+		
+		# plots both all and custom snps that are less than max p-value threshold at each interval of Exact test HWE
+		if len(total_custom_pvalues) > 0:
+			sig_pvals = pandas.DataFrame(np.transpose(np.array([total_snps_pvalues])), index=pval_binning, columns=['all'])
+			plt.figure()
+			barplot = sig_pvals.plot(kind='bar', color=['Y'])
+			# annotates the bar graphs by adding the total at each bar
+			for p in barplot.patches:
+				barplot.annotate(str(int(p.get_height())), (p.get_x()+p.get_width()/2.0, p.get_height() * 1.005), ha='center')
+			plt.xlabel("HWE p-value threshold")
+			plt.ylabel("Total SNPs")
+			plt.title("Distribution of HWE p-values across all SNPs", fontsize=15)
+			pdf.savefig()
+			plt.close()
+
+			# plots the custom; not on same graph as all due to scaling of custom may be substantially different than all since counts not percents
+			sig_pvals = pandas.DataFrame(np.transpose(np.array([total_custom_pvalues])), index=pval_binning, columns=['custom'])
+			plt.figure()
+			barplot = sig_pvals.plot(kind='bar', color=['G'])
+			# annotates the bar graphs by adding the total at each bar
+			for p in barplot.patches:
+				barplot.annotate(str(int(p.get_height())), (p.get_x()+p.get_width()/2.0, p.get_height() * 1.005), ha='center')
+			plt.xlabel("HWE p-value threshold")
+			plt.ylabel("Total SNPs")
+			plt.title("Distribution of HWE p-values across custom SNPs", fontsize=15)
+			pdf.savefig()
+			plt.close()
+			
+		else:
+			# only plots all, this is the case when user DOES NOT supply a custom snp list
+			sig_pvals = pandas.DataFrame(np.transpose(np.array([total_snps_pvalues])), index=pval_binning, columns=['all'])
+			plt.figure()
+			sig_pvals.plot(kind='bar', color=['Y'])
+			# annotates the bar graphs by adding the total at each bar
+			for p in barplot.patches:
+				barplot.annotate(str(int(p.get_height())), (p.get_x()+p.get_width()/2.0, p.get_height() * 1.005), ha='center')
+			plt.xlabel("HWE p-value threshold")
+			plt.ylabel("Total SNPs")
+			plt.title("Distribution of HWE p-values across all SNPs", fontsize=15)
+			pdf.savefig()
+			plt.close()
+
+	
 	def missing():
 		pass;
 
 	def mendel():
 		pass;
 
-
-	hwe()
-	#with PdfPages(str(outputPrefix)+'-basic-analysis.pdf') as pdf:
-	#	maf_analysis()
+	with PdfPages(str(outputPrefix)+'-basic-analysis.pdf') as pdf:
+		maf_analysis()
+		hwe()
 
 
 
