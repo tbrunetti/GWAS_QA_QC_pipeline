@@ -6,6 +6,7 @@ import matplotlib.collections as collections
 import seaborn as sns
 import pandas
 import numpy as np
+import statistics as stats
 from matplotlib.backends.backend_pdf import PdfPages
 
 def basic_stats(programLoc, inputFile, outputPrefix):
@@ -38,6 +39,7 @@ def visualize_stats(outputPrefix, custom_file):
 		plt.xlabel("MAF scores")
 		plt.ylabel("Total Numer of SNPs")
 		plt.title("Distribution of MAF across all SNPs", fontsize=15)
+		plt.tight_layout()
 		pdf.savefig()
 		plt.close()
 
@@ -73,6 +75,7 @@ def visualize_stats(outputPrefix, custom_file):
 			maf_comparison = sns.barplot(x='MAF_threshold', y='percent_retained', hue='content', data=percentage_maf_comparison)
 			maf_comparison.set(xlabel='MAF threshold filtered', ylabel='percentrage of SNPs retained')
 			sns.plt.title('Total percentage of SNPs remaining at each MAF threshold')
+			plt.tight_layout()
 			pdf.savefig()
 			plt.close()
 		
@@ -84,6 +87,7 @@ def visualize_stats(outputPrefix, custom_file):
 		plt.title('Total Number of SNPs Retained by MAF threshold', fontsize=20)
 		plt.xlabel('MAF cut-off', fontsize=15)
 		plt.ylabel('Total number of SNPs retained', fontsize=15)
+		plt.tight_layout
 		pdf.savefig()
 		plt.close()
 
@@ -96,6 +100,7 @@ def visualize_stats(outputPrefix, custom_file):
 		plt.xlabel("p-values")
 		plt.ylabel("Total Numer of SNPs")
 		plt.title("Distribution of HWE p-values across all SNPs", fontsize=15)
+		plt.tight_layout()
 		pdf.savefig()
 		plt.close()
 
@@ -119,6 +124,7 @@ def visualize_stats(outputPrefix, custom_file):
 			plt.xlabel("HWE p-value threshold")
 			plt.ylabel("Total SNPs")
 			plt.title("Distribution of HWE p-values across all SNPs", fontsize=15)
+			plt.tight_layout()
 			pdf.savefig()
 			plt.close()
 
@@ -132,6 +138,7 @@ def visualize_stats(outputPrefix, custom_file):
 			plt.xlabel("HWE p-value threshold")
 			plt.ylabel("Total SNPs")
 			plt.title("Distribution of HWE p-values across custom SNPs", fontsize=15)
+			plt.tight_layout()
 			pdf.savefig()
 			plt.close()
 			
@@ -146,19 +153,60 @@ def visualize_stats(outputPrefix, custom_file):
 			plt.xlabel("HWE p-value threshold")
 			plt.ylabel("Total SNPs")
 			plt.title("Distribution of HWE p-values across all SNPs", fontsize=15)
+			plt.tight_layout()
 			pdf.savefig()
 			plt.close()
 
 	
 	def missing():
-		pass;
+		# missing genotypes call percent by sample
+		imiss_file = pandas.read_table(outputPrefix + '.imiss', delim_whitespace=True)
+		stdev_imiss_dataset =stats.stdev(imiss_file['F_MISS'])
+		plt.figure()
+		outlier_list = imiss_file[imiss_file['F_MISS'] > 1.5*stdev_imiss_dataset]['IID']
+		plt.boxplot(list(imiss_file['F_MISS']), 1, sym ='b.', showfliers=False)
+		plt.title("Distribution of missing call rate by sample", fontsize=20)
+		plt.ylabel("percentage snps missing")
+		plt.xticks([1], ['all samples exluding outliers'])
+		plt.figtext(0.90, 0.80, 'outliers:'+'\n'+'\n'.join(list(outlier_list)), color='black', backgroundcolor='wheat',
+            weight='roman', size='medium')
+		plt.tight_layout()
+		plt.show()
+		
+		# outlier statistic and distribution
+		outlier_statistics = imiss_file[imiss_file['F_MISS'] > 1.5*stdev_imiss_dataset]
+		plt.figure()
+		plt.figtext(0.40, 0.40, 'General Stats:'+'\n'+str(imiss_file.describe())+'\n\n'+'Outlier Stats:'+'\n'+str(outlier_statistics.describe()), color='black', backgroundcolor='wheat',
+            weight='roman', size='large')
+		plt.show()
+		
+		
+		total_snps_missing = []
+		total_custom_missing = []
+		# missing genotypes call percent by SNPs
+		lmiss_file = pandas.read_table(outputPrefix + '.lmiss', delim_whitespace=True)
+		group_by_percent_missing = [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10]
+		for miss_thresh in group_by_percent_missing:
+			total_snps_missing.append(lmiss_file[lmiss_file['F_MISS'] <= miss_thresh].count()['F_MISS'])
+			if custom_file != None:
+				total_custom_missing.append(len(set(list(lmiss_file[lmiss_file['F_MISS']  <= miss_thresh]['SNP'])).intersection(custom_names_only)))
+
+
+		#lmiss_file['F_MISS'].plot.hist(bins=10)
+		#plt.show()
+		#print lmiss_file.describe()['F_MISS']
 
 	def mendel():
 		pass;
 
-	with PdfPages(str(outputPrefix)+'-basic-analysis.pdf') as pdf:
-		maf_analysis()
-		hwe()
+	
+	def maf_with_missing():
+		pass;
+
+	missing()
+	#with PdfPages(str(outputPrefix)+'-basic-analysis.pdf') as pdf:
+	#	maf_analysis()
+	#	hwe()
 
 
 
