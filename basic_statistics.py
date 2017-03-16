@@ -30,6 +30,8 @@ def visualize_stats(outputPrefix, custom_file):
 	custom_snp_offset = 0
 	# read in custom_file if user supplies one
 	if custom_file != None:
+		multipostion_file = open(outputPrefix + '-custom_multiposition.txt', 'w')
+		missingCustom_file = open(outputPrefix + '-custom_missing.txt', 'w')
 		custom_snp_dict = {}
 		with open(custom_file) as custom_snp_file:
 			for line in custom_snp_file:
@@ -43,10 +45,10 @@ def visualize_stats(outputPrefix, custom_file):
 		
 		custom_names_only = [key for key in custom_snp_dict]
 		basic_stats_analysis.write('The total number of custom SNPs is ' + str(len(custom_names_only)+custom_snp_offset)+'\n')
-		basic_stats_analysis.write('There are ' + str(custom_snp_offset) + 'SNP IDs in the custom set that have multiple positions under the same ID. They are:' +'\n')
-		basic_stats_analysis.write('\n'.join([snp for snp in custom_snp_dict if len(custom_snp_dict[snp]) > 2])+'\n')
+		basic_stats_analysis.write('There are ' + str(custom_snp_offset) + 'SNP IDs in the custom set that have multiple positions under the same ID')
+		multipostion_file.write('\n'.join([snp for snp in custom_snp_dict if len(custom_snp_dict[snp]) > 2])+'\n')
 		basic_stats_analysis.write('The total number of custom SNP IDs not found in the entire data set is ' + str(len(set(custom_names_only) - set(all_names)))+'\n')
-		basic_stats_analysis.write('The IDs of these missing SNPs are as follows:'+'\n'+'\n'.join(list(set(custom_names_only) - set(all_names))))
+		missingCustom_file.write('\n'.join(list(set(custom_names_only) - set(all_names))))
 
 	def maf_analysis():
 		# distribution of SNP counts by MAF
@@ -194,12 +196,8 @@ def visualize_stats(outputPrefix, custom_file):
 		# outlier statistic and distribution
 		outlier_statistics = imiss_file[imiss_file['F_MISS'] > 1.5*stdev_imiss_dataset]
 		# PUT THIS IN basic-statistics.txt NOT PDF!!!!!!
-		#plt.figure()
-		#plt.title("Overall missing callrate in across samples")
-		#plt.figtext(0.20, 0.20, 'General Stats:'+'\n'+str(imiss_file.describe()['F_MISS'])+'\n\n'+'Outlier Stats:'+'\n'+str(outlier_statistics.describe()['F_MISS']), color='black', backgroundcolor='wheat',
-            weight='roman', size='small')
-		#pdf.savefig()
-		#plt.close()
+		basic_stats_analysis.write('\n' + '#----------------- MISSING CALL RATE STATS ACROSS SAMPLES-----------------------#')
+		basic_stats_analysis.write('General Stats:' +'\n' + str(imiss_file.describe()['F_MISS'])+ '\n\n'+'Outlier Stats:'+'\n'+str(outlier_statistics.describe()['F_MISS']) +'\n')
 		
 		
 		total_snps_missing = []
