@@ -20,17 +20,34 @@ def basic_stats(programLoc, inputFile, outputPrefix):
 
 def visualize_stats(outputPrefix, custom_file):
 	
+	basic_stats_analysis = open(outputPrefix+'-basic-analysis.txt', 'w')
+	
+	freq_file = pandas.read_table(outputPrefix + '.frq', delim_whitespace=True)
+	all_names = list(freq_file['SNP'])
+	basic_stats_analysis.write('The total number of all snps in the dataset for analysis is '+str(len(all_names))+'\n')
+
+	# The total custom snps with same snp ID and more than one position
+	custom_snp_offset = 0
 	# read in custom_file if user supplies one
 	if custom_file != None:
 		custom_snp_dict = {}
 		with open(custom_file) as custom_snp_file:
 			for line in custom_snp_file:
 				snp, chrm, pos = line.rstrip().split(',')
-				custom_snp_dict[snp] = [chrm, pos]
-
+				if snp not in custom_snp_dict:
+					custom_snp_dict[snp] = [chrm, pos]
+				# necessary because occassionally a SNP can have multiple positions
+				else:
+					custom_snp_dict[snp] = custom_snp_dict[snp] + [pos]
+					custom_snp_offset = custom_snp_offset + 1
+		
 		custom_names_only = [key for key in custom_snp_dict]
-	
-	
+		basic_stats_analysis.write('The total number of custom SNPs is ' + str(len(custom_names_only)+custom_snp_offset)+'\n')
+		basic_stats_analysis.write('There are ' + str(custom_snp_offset) + 'SNP IDs in the custom set that have multiple positions under the same ID. They are:' +'\n')
+		basic_stats_analysis.write('\n'.join([snp for snp in custom_snp_dict if len(custom_snp_dict[snp]) > 2])+'\n')
+		basic_stats_analysis.write('The total number of custom SNP IDs not found in the entire data set is ' + str(len(set(custom_names_only) - set(all_names)))+'\n')
+		basic_stats_analysis.write('The IDs of these missing SNPs are as follows:'+'\n'+'\n'.join(list(set(custom_names_only) - set(all_names))))
+
 	def maf_analysis():
 		# distribution of SNP counts by MAF
 		freq_file = pandas.read_table(outputPrefix + '.frq', delim_whitespace=True)
@@ -168,17 +185,21 @@ def visualize_stats(outputPrefix, custom_file):
 		plt.title("Distribution of missing call rate by sample", fontsize=20)
 		plt.ylabel("percentage snps missing")
 		plt.xticks([1], ['all samples exluding outliers'])
-		plt.figtext(0.90, 0.80, 'outliers:'+'\n'+'\n'.join(list(outlier_list)), color='black', backgroundcolor='wheat',
-            weight='roman', size='medium')
+		plt.figtext(0.70, 0.50, 'outliers:'+'\n'+'\n'.join(list(outlier_list)), color='black', backgroundcolor='wheat',
+            weight='roman', size='small')
 		plt.tight_layout()
-		plt.show()
+		pdf.savefig()
+		plt.close()
 		
 		# outlier statistic and distribution
 		outlier_statistics = imiss_file[imiss_file['F_MISS'] > 1.5*stdev_imiss_dataset]
-		plt.figure()
-		plt.figtext(0.40, 0.40, 'General Stats:'+'\n'+str(imiss_file.describe())+'\n\n'+'Outlier Stats:'+'\n'+str(outlier_statistics.describe()), color='black', backgroundcolor='wheat',
-            weight='roman', size='large')
-		plt.show()
+		# PUT THIS IN basic-statistics.txt NOT PDF!!!!!!
+		#plt.figure()
+		#plt.title("Overall missing callrate in across samples")
+		#plt.figtext(0.20, 0.20, 'General Stats:'+'\n'+str(imiss_file.describe()['F_MISS'])+'\n\n'+'Outlier Stats:'+'\n'+str(outlier_statistics.describe()['F_MISS']), color='black', backgroundcolor='wheat',
+            weight='roman', size='small')
+		#pdf.savefig()
+		#plt.close()
 		
 		
 		total_snps_missing = []
@@ -187,14 +208,36 @@ def visualize_stats(outputPrefix, custom_file):
 		lmiss_file = pandas.read_table(outputPrefix + '.lmiss', delim_whitespace=True)
 		group_by_percent_missing = [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10]
 		for miss_thresh in group_by_percent_missing:
-			total_snps_missing.append(lmiss_file[lmiss_file['F_MISS'] <= miss_thresh].count()['F_MISS'])
+			total_snps_missing.append(lmiss_file[lmiss_file['F_MISS'] >= miss_thresh].count()['F_MISS'])
 			if custom_file != None:
-				total_custom_missing.append(len(set(list(lmiss_file[lmiss_file['F_MISS']  <= miss_thresh]['SNP'])).intersection(custom_names_only)))
+				total_custom_missing.append(len(set(list(lmiss_file[lmiss_file['F_MISS']  >= miss_thresh]['SNP'])).intersection(custom_names_only)))
 
+		# calculate percentages instead of frequency and then reformat lists for seaborn compatability
+		reformat_all_seaborn = [[str(group_by_percent_missing[x]), 'all', str(total_snps_missing[x]/float(len(lmiss_file.index)))] for x in range(0, len(group_by_percent_missing))]
+		if custom_file != None:
+			# calculate percentages instead of frequency and then reformat lists for seaborn compatability for custom file
+			reformat_custom_seaborn = [[str(group_by_percent_missing[i]), 'custom', str(total_custom_missing[i]/float(len(custom_names_only)))] for i in range(0, len(group_by_percent_missing))]
+			merge = reformat_all_seaborn + reformat_custom_seaborn
+			missing_snps_seaborn_datastruc = pandas.DataFrame(np.array(merge), columns=['missing_call_rate_threshold', 'content', "percentage_snps_remaining"])
+			missing_snps_seaborn_datastruc[['percentage_snps_remaining']] = missing_snps_seaborn_datastruc[['percentage_snps_remaining']].astype(float)
+			plt.figure()
+			snp_callrate_comparison = sns.barplot(x='missing_call_rate_threshold', y='percentage_snps_remaining', hue='content', data=missing_snps_seaborn_datastruc)
+			snp_callrate_comparison.set(xlabel='Percentage filtered missing call rate threshold', ylabel='percentage snps remaining')
+			sns.plt.title('Percentage of SNPs remaining after filtering missing call rate of SNPs')
+			plt.tight_layout()
+			pdf.savefig()
+			plt.close()
 
-		#lmiss_file['F_MISS'].plot.hist(bins=10)
-		#plt.show()
-		#print lmiss_file.describe()['F_MISS']
+		else:
+			missing_snps_seaborn_datastruc = pandas.DataFrame(np.array(reformat_all_seaborn), columns=['missing_call_rate_threshold', 'data', "percentage_snps_remaining"])
+			missing_snps_seaborn_datastruc[['percentage_snps_remaining']] = missing_snps_seaborn_datastruc[['percentage_snps_remaining']].astype(float)
+			snp_callrate_comparison = sns.barplot(x='missing_call_rate_threshold', y='percentage_snps_remaining', hue='content', data=missing_snps_seaborn_datastruc)
+			snp_callrate_comparison.set(xlabel='Percentage filtered missing call rate threshold', ylabel='percentage snps remaining')
+			sns.plt.title('Percentage of SNPs remaining after filtering missing call rate of SNPs')
+			plt.tight_layout()
+			pdf.savefig()
+			plt.close()
+
 
 	def mendel():
 		pass;
@@ -203,10 +246,11 @@ def visualize_stats(outputPrefix, custom_file):
 	def maf_with_missing():
 		pass;
 
-	missing()
-	#with PdfPages(str(outputPrefix)+'-basic-analysis.pdf') as pdf:
-	#	maf_analysis()
-	#	hwe()
+	
+	with PdfPages(str(outputPrefix)+'-basic-analysis.pdf') as pdf:
+		maf_analysis()
+		hwe()
+		missing()
 
 
 
