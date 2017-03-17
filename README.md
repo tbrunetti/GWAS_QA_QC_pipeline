@@ -4,6 +4,7 @@
 ------------------
 ### Overview
 -------------
+![Alt text](https://github.com/tbrunetti/GWAS_QA_QC_pipeline/blob/master/GWAS_pipeline_image_workflow.jpg)
 
 ### Software requirements
 -------------------------
