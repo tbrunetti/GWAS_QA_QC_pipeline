@@ -14,13 +14,20 @@ This suite has two stand-alone scripts to automate general quality control and d
 For specific software requirements for each program please see their corresponding README.md files.  If the purpose is to use all modules in the GWAS_QA_QC_pipeline the following software requirements must be met:
 * Python version 2.7
 * PLINK version 1.9
-
-__Python Dependencies__
+  
+__Python Dependencies__  
 All python dependencies can be installed with pip or from source at the html links provided
 * matplotlib, numpy, pandas (https://www.scipy.org/install.html)
 * chunkypipes (https://pypi.python.org/pypi/ChunkyPipes)
 * seaborn (https://pypi.python.org/pypi/seaborn)
-* statistics (https://pypi.python.org/pypi/statistics)
+* statistics (https://pypi.python.org/pypi/statistics)  
+If pip is installed the following set of pip commands should automatically install all the Python dependencies:  
+```
+pip install --user numpy scipy matplotlib ipython jupyter pandas sympy nose  
+pip install chunkypipes
+pip install seaborn
+pip install statistics
+```
 
 ### User Generated/User Provided File Requirements
 --------------------------------------------------
