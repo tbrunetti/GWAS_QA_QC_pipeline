@@ -2,6 +2,25 @@
 
 ## basic_statistics
 ------------------
+### Overview
+-------------
+
+### Software requirements
+-------------------------
+
+### User Generated/User Provided File Requirements
+--------------------------------------------------
+
+
+### Installation and Configuration
+-----------------------------------
+
+### Running the Pipeline
+-------------------------
+
+
+
+
 ### MODE: both (default)
 #### Output Files
  * .frq
