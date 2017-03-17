@@ -1,13 +1,17 @@
 # GWAS_QA_QC_pipeline
 
-## basic_statistics
-------------------
-### Overview
+### Description
+----------------
+This suite has two standalone scripts to automate general quality control and data clean up in genotyping data used in GWAS.  The first program, located in the data_visualization_stats folder with the execuatble called basic_stats.py, is used to help the user determine what parameters should be used in the actual filtering pipeline, located in the folder filtering_pipeline. The executable called sample_snp_qc.py, can take in a set of parameters and will actually filter out samples and variants that do not meet the specified thresholds input by the user.  A set of default parameters is provided if the user does not specify any parameters.  Please see README.md in the filtering_pipeline directory for more information.
+
+### General Overview
 -------------
 ![Alt text](https://github.com/tbrunetti/GWAS_QA_QC_pipeline/blob/master/GWAS_pipeline_image_workflow.jpg)
 
+
 ### Software requirements
 -------------------------
+
 
 ### User Generated/User Provided File Requirements
 --------------------------------------------------
@@ -15,6 +19,8 @@
 
 ### Installation and Configuration
 -----------------------------------
+
+
 
 ### Running the Pipeline
 -------------------------
