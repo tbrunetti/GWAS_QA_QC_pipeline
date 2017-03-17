@@ -22,12 +22,13 @@ class Pipeline(BasePipeline):
 
 	def add_pipeline_args(self, parser):
 		parser.add_argument('-fileLocation', required=True, help='Full path to directory in which BINARY PLINK files are located including sample name prefix')
-		parser.add_argument('--sample_missing_callrate', default=0.05, help='maximum percent (0.0-1.0) missing call rate in a SAMPLE in order to be removed')
-		parser.add_argument('--snp_missing_callrate', default=0.05, help='maximum percent (in decimal form 0.0-1.0) missing call rate in a SNP in order to be removed')
-		parser.add_argument('--hwe_cutoff', default=0.0001, help='p-value cutoff for filtering Hardy-Weinberg equilibrium exact test value')
+		parser.add_argument('--maf', default=0.05, help="maximum maf cutoff threshold, i.e. remove variants BELOW this value")
+		parser.add_argument('--sample_missing_callrate', default=0.05, help='maximum percent (0.0-1.0) missing call rate in a SAMPLE in order to be removed, i.e. filter out samples with missing call rate EXCEEDING this threshold')
+		parser.add_argument('--snp_missing_callrate', default=0.05, help='maximum percent (in decimal form 0.0-1.0) missing call rate in a SNP in order to be removed, i.e. filter out variants that EXCEED this value')
+		parser.add_argument('--hwe_cutoff', default=0.0001, help='filter below p-value cutoff for filtering Hardy-Weinberg equilibrium exact test value. i.e. remove variants that have a p-value SMALLER than this value')
 		parser.add_argument('--windowSize', default=50, help='window size in kb to be used for LD pruning')
 		parser.add_argument('--varStep', default=5, help='variant step side to slide window for LD pruning')
-		parser.add_argument('--r2_thresh', default=0.50, help='pairwise r-squared threhold at each step for each variant pair, if correlation is greather than set thresh, var is pruned')
+		parser.add_argument('--r2_thresh', default=0.50, help='pairwise r-squared threhold at each step for each variant pair, if correlation is greater than set thresh, var is pruned')
 	
 	def run_pipeline(self, pipeline_args, pipeline_config):
 		plink = Software('plink', pipeline_config['plink']['path'])
@@ -38,8 +39,9 @@ class Pipeline(BasePipeline):
 		# missing call rate, sample and snp level
 		plink.run(
 			Parameter('--bfile', pipeline_args['fileLocation']),
-			Parameter('--geno', pipeline_args['sample_missing_callrate']),
-			Parameter('--mind', pipeline_args['snp_missing_callrate']),
+			Parameter('--geno', pipeline_args['snp_missing_callrate']),
+			Parameter('--mind', pipeline_args['sample_missing_callrate']),
+			Parameter('--maf', pipeline_args['maf']),
 			Parameter('--make-bed'),
 			Parameter('--out', pipeline_args['fileLocation']+'_callrate_cleanup')
 			)
